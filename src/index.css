@@ -75,5 +75,5 @@ code {
   height: 60px;
 }
 .center--part{
-  background-image:url(./images/front-view-black-background-with-geometric-shapes-3d-3d-illustration_78895-2487.avif);
+  background-image:url(&{picha});
 }
