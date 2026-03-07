@@ -4,6 +4,7 @@ struct MenuBarView: View {
     @Bindable var pipeline: VoiceInputPipeline
     @Environment(\.openWindow) private var openWindow
     private let settings = AppSettings.shared
+    private let updater = UpdateChecker.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -77,7 +78,26 @@ struct MenuBarView: View {
             }
             .keyboardShortcut(",", modifiers: .command)
 
+            if updater.updateAvailable {
+                Button {
+                    updater.openDownload()
+                } label: {
+                    Label("Update Available: v\(updater.latestVersion)", systemImage: "arrow.down.circle.fill")
+                }
+            }
+
+            Button {
+                updater.checkInBackground()
+            } label: {
+                Label("Check for Updates", systemImage: "arrow.triangle.2.circlepath")
+            }
+
             Divider()
+
+            Text("v\(AppConstants.appVersion)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
 
             Button("Quit Voco") {
                 NSApplication.shared.terminate(nil)

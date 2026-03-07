@@ -17,8 +17,15 @@ enum Prompts {
     //   {{dictionary}}       — custom vocabulary from Settings → Dictionary
     //                          Each entry is a line: "- Word" or "- Word (sounds like: hint)"
     //                          Empty if no dictionary entries exist.
+    //   {{rewrite_intensity}} — rewrite intensity description (from slider in Settings → AI)
 
     You are a voice-to-text post-processor. You receive raw speech-to-text output and clean it into polished, ready-to-use text.
+
+    ## Multilingual Input
+    The speaker may use multiple languages within a single utterance (code-switching). This is intentional. Preserve ALL languages as spoken — do NOT translate or unify into a single language. Keep each word in whatever language the speaker used.
+
+    ## Rewrite Intensity
+    {{rewrite_intensity}}
 
     ## Voice Commands → Formatting
     Convert spoken formatting commands into actual formatting:
@@ -84,8 +91,12 @@ enum Prompts {
     //   {{dictionary}}       — custom vocabulary from Settings → Dictionary
     //                          Each entry is a line: "- Word" or "- Word (sounds like: hint)"
     //                          Empty if no dictionary entries exist.
+    //   {{rewrite_intensity}} — rewrite intensity description (from slider in Settings → AI)
 
-    You are a {{source_language}}-to-{{target_language}} voice translator. You receive raw {{source_language}} speech-to-text output and produce clean {{target_language}} text.
+    You are a {{source_language}}-to-{{target_language}} voice translator. You receive raw speech-to-text output and produce clean {{target_language}} text.
+
+    ## Rewrite Intensity
+    {{rewrite_intensity}}
 
     ## Voice Commands → Formatting
     The speaker may use voice commands for formatting. Convert them:
@@ -111,11 +122,11 @@ enum Prompts {
     Self-corrections: keep ONLY the final version.
 
     ## Process
-    1. The speaker may mix {{source_language}} and {{target_language}} words freely — this is normal. Understand the full meaning.
+    1. The speaker may mix languages freely — this is normal. Understand the full meaning.
     2. Remove fillers, stutters, and self-corrections
     3. Apply any formatting commands
     4. Translate the ENTIRE result into natural, fluent {{target_language}}.
-    5. IMPORTANT: Your job is TRANSLATION. Even if the input is already partially in {{target_language}}, you MUST still output everything in {{target_language}}. Never leave any {{source_language}} text in the output.
+    5. IMPORTANT: Your job is TRANSLATION. Output MUST be 100% in {{target_language}}. Never leave any non-{{target_language}} text in the output.
 
     ## Tone (active app: {{app_name}})
     // Tone is automatically set based on the active app.
@@ -127,11 +138,30 @@ enum Prompts {
     {{dictionary}}
 
     ## Output Rules
-    - CRITICAL: Output MUST be 100% in {{target_language}}. NEVER output any {{source_language}} text, not even a single word.
+    - CRITICAL: Output MUST be 100% in {{target_language}}.
     - Output ONLY the {{target_language}} translation with formatting applied.
     - NEVER add commentary. Just output the {{target_language}} text directly.
-    - If unsure about a word, translate it anyway — do NOT leave it in {{source_language}}.
+    - If unsure about a word, translate it anyway — do NOT leave it in the source language.
     """
+
+    // MARK: - Rewrite Intensity Descriptions
+
+    static func intensityDescription(_ level: Int) -> String {
+        switch level {
+        case 1:
+            return "MINIMAL rewriting. Only fix obvious speech-to-text errors and remove filler words. Keep the speaker's exact wording, sentence structure, and phrasing as close to the original as possible."
+        case 2:
+            return "LIGHT rewriting. Fix grammar, remove fillers, and lightly smooth awkward phrasing. Stay close to the speaker's original words and structure."
+        case 3:
+            return "MODERATE rewriting. Clean up grammar, improve clarity, and restructure sentences where needed for readability. Maintain the speaker's intent and tone."
+        case 4:
+            return "SUBSTANTIAL rewriting. Actively improve clarity, flow, and conciseness. Restructure freely for better readability while preserving the core message."
+        case 5:
+            return "MAXIMUM rewriting. Fully rewrite for professional polish — optimize word choice, sentence structure, and flow. The output should read as well-crafted written text, not transcribed speech."
+        default:
+            return intensityDescription(max(1, min(5, level)))
+        }
+    }
 
     // MARK: - Placeholder Resolution
 
@@ -143,7 +173,8 @@ enum Prompts {
         appName: String = "",
         appBundleID: String = "",
         tone: String = "",
-        dictionary: String = ""
+        dictionary: String = "",
+        rewriteIntensity: Int = 2
     ) -> String {
         let resolved = template
             .replacingOccurrences(of: "{{source_language}}", with: source)
@@ -152,6 +183,7 @@ enum Prompts {
             .replacingOccurrences(of: "{{app_bundle_id}}", with: appBundleID)
             .replacingOccurrences(of: "{{tone}}", with: tone)
             .replacingOccurrences(of: "{{dictionary}}", with: dictionary)
+            .replacingOccurrences(of: "{{rewrite_intensity}}", with: intensityDescription(rewriteIntensity))
         return resolved
             .components(separatedBy: "\n")
             .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
@@ -180,7 +212,8 @@ enum Prompts {
         customTranslatePrompt: String,
         appName: String,
         appBundleID: String,
-        tone: String
+        tone: String,
+        rewriteIntensity: Int = 2
     ) -> String {
         let template: String
         switch mode {
@@ -206,7 +239,8 @@ enum Prompts {
             appName: appName,
             appBundleID: appBundleID,
             tone: tone,
-            dictionary: dictionaryText
+            dictionary: dictionaryText,
+            rewriteIntensity: rewriteIntensity
         )
     }
 }

@@ -183,7 +183,8 @@ final class VoiceInputPipeline {
                     customTranslatePrompt: self.settings.customTranslatePrompt,
                     appName: self.activeAppName,
                     appBundleID: self.activeAppBundleID,
-                    tone: tone
+                    tone: tone,
+                    rewriteIntensity: self.settings.rewriteIntensity
                 )
 
                 print("[Voco] ── Pipeline ──")

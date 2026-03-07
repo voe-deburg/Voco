@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         HotkeyService.register(pipeline: pipeline)
+        UpdateChecker.shared.checkOnLaunch()
 
         // Install main menu (LSUIElement apps have no menu bar by default)
         let mainMenu = NSMenu()

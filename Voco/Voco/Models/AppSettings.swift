@@ -62,6 +62,9 @@ final class AppSettings {
     var alwaysCopyToClipboard: Bool {
         didSet { defaults.set(alwaysCopyToClipboard, forKey: "alwaysCopyToClipboard") }
     }
+    var rewriteIntensity: Int {
+        didSet { defaults.set(rewriteIntensity, forKey: "rewriteIntensity") }
+    }
     var customSystemPrompt: String {
         didSet { defaults.set(customSystemPrompt, forKey: "customSystemPrompt") }
     }
@@ -105,6 +108,7 @@ final class AppSettings {
         self.launchAtLogin = d.bool(forKey: "launchAtLogin")
         self.selectedMicrophoneID = d.string(forKey: "selectedMicrophoneID") ?? ""
         self.alwaysCopyToClipboard = d.object(forKey: "alwaysCopyToClipboard") as? Bool ?? false
+        self.rewriteIntensity = d.object(forKey: "rewriteIntensity") as? Int ?? 2
         self.customSystemPrompt = d.string(forKey: "customSystemPrompt") ?? ""
         self.customTranslatePrompt = d.string(forKey: "customTranslatePrompt") ?? ""
 

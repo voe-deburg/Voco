@@ -67,7 +67,12 @@ struct LLMSettingsView: View {
     @State private var showKey = false
     @State private var testResult: String = ""
 
-    private let languages = [
+    private let sourceLanguages = [
+        "Auto", "Chinese", "English", "Japanese", "Korean", "Spanish",
+        "French", "German", "Russian", "Portuguese", "Italian",
+        "Arabic", "Hindi", "Thai", "Vietnamese", "Indonesian",
+    ]
+    private let targetLanguages = [
         "Chinese", "English", "Japanese", "Korean", "Spanish",
         "French", "German", "Russian", "Portuguese", "Italian",
         "Arabic", "Hindi", "Thai", "Vietnamese", "Indonesian",
@@ -80,7 +85,7 @@ struct LLMSettingsView: View {
 
             SettingsRow("From:") {
                 Picker("", selection: $settings.sourceLanguage) {
-                    ForEach(languages, id: \.self) { Text($0) }
+                    ForEach(sourceLanguages, id: \.self) { Text($0) }
                 }
                 .labelsHidden()
                 .frame(maxWidth: 160)
@@ -88,7 +93,7 @@ struct LLMSettingsView: View {
 
             SettingsRow("To:") {
                 Picker("", selection: $settings.targetLanguage) {
-                    ForEach(languages, id: \.self) { Text($0) }
+                    ForEach(targetLanguages, id: \.self) { Text($0) }
                 }
                 .labelsHidden()
                 .frame(maxWidth: 160)
@@ -138,6 +143,38 @@ struct LLMSettingsView: View {
                 }
                 .disabled(apiKeyInput.isEmpty)
                 .controlSize(.small)
+            }
+
+            SettingsDivider()
+
+            SectionHeader("Rewrite Intensity")
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Conservative")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("Creative")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 12) {
+                    Slider(
+                        value: Binding(
+                            get: { Double(settings.rewriteIntensity) },
+                            set: { settings.rewriteIntensity = Int($0.rounded()) }
+                        ),
+                        in: 1...5,
+                        step: 1
+                    )
+                    Text("\(settings.rewriteIntensity)")
+                        .font(.body.monospacedDigit())
+                        .frame(width: 16)
+                }
+                Text(intensityLabel(settings.rewriteIntensity))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             SettingsDivider()
@@ -208,6 +245,17 @@ struct LLMSettingsView: View {
             }
         }
         .padding(.vertical, 3)
+    }
+
+    private func intensityLabel(_ level: Int) -> String {
+        switch level {
+        case 1: return "Minimal — fix errors only, keep original wording"
+        case 2: return "Light — fix grammar, smooth awkward phrasing"
+        case 3: return "Moderate — improve clarity and readability"
+        case 4: return "Substantial — restructure for better flow"
+        case 5: return "Maximum — full professional rewrite"
+        default: return ""
+        }
     }
 
     private func testProcessing() async {
