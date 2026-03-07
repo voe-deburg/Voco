@@ -60,6 +60,10 @@ enum HotkeyService {
     @MainActor
     static func resume() {
         isSuspended = false
+        // Re-enable Fn tap in case system disabled it
+        if let port = fnTapPort {
+            CGEvent.tapEnable(tap: port, enable: true)
+        }
         print("[Typeless] Hotkeys resumed")
     }
 
@@ -128,12 +132,15 @@ enum HotkeyService {
     @discardableResult
     private static func handleEsc(_ event: NSEvent) -> Bool {
         guard event.keyCode == UInt16(kVK_Escape) else { return false }
+        guard !isSuspended else { return false }
         guard let p = pipeline else { return false }
+        // Only consume ESC when pipeline is active
+        var isActive = false
+        DispatchQueue.main.sync { isActive = !p.state.isIdle }
+        guard isActive else { return false }
         Task { @MainActor in
-            if !p.state.isIdle {
-                p.cancel()
-                print("[Typeless] Cancelled via ESC")
-            }
+            p.cancel()
+            print("[Typeless] Cancelled via ESC")
         }
         return true
     }

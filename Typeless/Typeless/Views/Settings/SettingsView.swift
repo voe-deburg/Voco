@@ -26,13 +26,16 @@ enum SettingsTab: String, CaseIterable {
 
 struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
+    @State private var permissionsMissing = false
+
+    private let permissionTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
             // Toolbar-style tab bar
             HStack(spacing: 2) {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
-                    SettingsTabButton(tab: tab, isSelected: selectedTab == tab) {
+                    SettingsTabButton(tab: tab, isSelected: selectedTab == tab, showBadge: tab == .general && permissionsMissing) {
                         selectedTab = tab
                     }
                 }
@@ -60,12 +63,19 @@ struct SettingsView: View {
             }
         }
         .frame(width: 460, height: 520)
+        .onAppear { checkPermissions() }
+        .onReceive(permissionTimer) { _ in checkPermissions() }
+    }
+
+    private func checkPermissions() {
+        permissionsMissing = !PermissionsService.checkMicrophonePermission() || !PermissionsService.checkAccessibilityPermission()
     }
 }
 
 struct SettingsTabButton: View {
     let tab: SettingsTab
     let isSelected: Bool
+    var showBadge: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -74,6 +84,14 @@ struct SettingsTabButton: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 16))
                     .frame(height: 18)
+                    .overlay(alignment: .topTrailing) {
+                        if showBadge {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.red)
+                                .offset(x: 7, y: -4)
+                        }
+                    }
                 Text(tab.label)
                     .font(.caption2)
             }

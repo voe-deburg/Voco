@@ -31,6 +31,12 @@ struct HotkeyRecorder: View {
                     HotkeyService.resume()
                 }
             }
+            .onDisappear {
+                if isRecording {
+                    isRecording = false
+                    HotkeyService.resume()
+                }
+            }
         }
     }
 }
@@ -170,6 +176,10 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.green)
                 Text("Granted").foregroundStyle(.secondary).font(.callout)
             } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("Not Granted").foregroundStyle(.orange).font(.callout)
+                Spacer()
                 Button(buttonLabel) { Task { await action() } }
                     .controlSize(.small)
             }
