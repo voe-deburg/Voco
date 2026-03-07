@@ -6,35 +6,48 @@ import Carbon.HIToolbox
 struct HotkeyRecorder: View {
     let label: String
     @Binding var hotkey: Hotkey
+    var otherHotkey: Hotkey?
     @State private var isRecording = false
+
+    private var isDuplicate: Bool {
+        otherHotkey != nil && hotkey == otherHotkey
+    }
 
     var body: some View {
         SettingsRow(label) {
-            Button {
-                isRecording.toggle()
-            } label: {
-                Text(isRecording ? "Press any key..." : hotkey.label)
-                    .frame(minWidth: 100)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(isRecording ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
-            )
-            .keyboardShortcut(.none)
-            .background(isRecording ? KeyCaptureView(hotkey: $hotkey, isRecording: $isRecording) : nil)
-            .onChange(of: isRecording) {
-                if isRecording {
-                    HotkeyService.suspend()
-                } else {
-                    HotkeyService.resume()
+            HStack(spacing: 6) {
+                Button {
+                    isRecording.toggle()
+                } label: {
+                    Text(isRecording ? "Press any key..." : hotkey.label)
+                        .frame(minWidth: 100)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                 }
-            }
-            .onDisappear {
-                if isRecording {
-                    isRecording = false
-                    HotkeyService.resume()
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(isRecording ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
+                )
+                .keyboardShortcut(.none)
+                .background(isRecording ? KeyCaptureView(hotkey: $hotkey, isRecording: $isRecording) : nil)
+                .onChange(of: isRecording) {
+                    if isRecording {
+                        HotkeyService.suspend()
+                    } else {
+                        HotkeyService.resume()
+                    }
+                }
+                .onDisappear {
+                    if isRecording {
+                        isRecording = false
+                        HotkeyService.resume()
+                    }
+                }
+                if isDuplicate {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                        .help("Same as the other hotkey")
                 }
             }
         }
@@ -52,12 +65,6 @@ struct KeyCaptureView: NSViewRepresentable {
             let carbonMods = carbonModifiers(from: modifierFlags)
             let label = HotkeyService.labelForKeyCode(keyCode, modifiers: carbonMods)
             hotkey = Hotkey(keyCode: keyCode, modifiers: carbonMods, label: label)
-            isRecording = false
-        }
-        view.onFnKey = { modifierFlags in
-            let carbonMods = carbonModifiers(from: modifierFlags)
-            let label = HotkeyService.labelForKeyCode(HotkeyService.fnKeyCode, modifiers: carbonMods)
-            hotkey = Hotkey(keyCode: HotkeyService.fnKeyCode, modifiers: carbonMods, label: label)
             isRecording = false
         }
         view.onCancel = {
@@ -81,31 +88,57 @@ struct KeyCaptureView: NSViewRepresentable {
 
 final class KeyCaptureNSView: NSView {
     var onKey: ((UInt16, NSEvent.ModifierFlags) -> Void)?
-    var onFnKey: ((NSEvent.ModifierFlags) -> Void)?
     var onCancel: (() -> Void)?
-    private var fnDown = false
+    private var modifierKeyDown: UInt16? = nil
 
     override var acceptsFirstResponder: Bool { true }
 
+    private static let functionKeyCodes: Set<UInt16> = [
+        UInt16(kVK_F1), UInt16(kVK_F2), UInt16(kVK_F3), UInt16(kVK_F4),
+        UInt16(kVK_F5), UInt16(kVK_F6), UInt16(kVK_F7), UInt16(kVK_F8),
+        UInt16(kVK_F9), UInt16(kVK_F10), UInt16(kVK_F11), UInt16(kVK_F12),
+    ]
+
     override func keyDown(with event: NSEvent) {
+        modifierKeyDown = nil
         if event.keyCode == UInt16(kVK_Escape) {
             onCancel?()
             return
         }
-        onKey?(UInt16(event.keyCode), event.modifierFlags.intersection([.shift, .control, .option, .command]))
+        let mods = event.modifierFlags.intersection([.shift, .control, .option, .command])
+        let hasNonShiftModifier = mods.contains(.control) || mods.contains(.option) || mods.contains(.command)
+        // Reject plain keys (or shift-only) that would conflict with normal typing
+        if !hasNonShiftModifier && !Self.functionKeyCodes.contains(event.keyCode) {
+            return
+        }
+        onKey?(UInt16(event.keyCode), mods)
     }
 
     override func flagsChanged(with event: NSEvent) {
-        let isFn = event.modifierFlags.contains(.function) && event.keyCode == 0x3F
-        if isFn {
-            if !fnDown {
-                fnDown = true
-            }
-        } else if fnDown {
-            fnDown = false
-            // Pass the remaining modifiers (shift, control, option, command) that were held with Fn
+        let keyCode = event.keyCode
+        guard HotkeyService.isModifierKey(keyCode),
+              let flag = modifierFlag(for: keyCode) else { return }
+
+        let isDown = event.modifierFlags.contains(flag)
+        if isDown {
+            modifierKeyDown = keyCode
+        } else if modifierKeyDown == keyCode {
+            modifierKeyDown = nil
+            let normalized = HotkeyService.normalizeModifierKeyCode(keyCode)
+            // Pass remaining held modifiers (e.g. Shift held during Fn release → Shift+Fn)
             let mods = event.modifierFlags.intersection([.shift, .control, .option, .command])
-            onFnKey?(mods)
+            onKey?(normalized, mods)
+        }
+    }
+
+    private func modifierFlag(for keyCode: UInt16) -> NSEvent.ModifierFlags? {
+        switch keyCode {
+        case 0x3F: return .function
+        case 0x3A, 0x3D: return .option
+        case 0x3B, 0x3E: return .control
+        case 0x38, 0x3C: return .shift
+        case 0x37, 0x36: return .command
+        default: return nil
         }
     }
 }
@@ -131,9 +164,9 @@ struct GeneralSettingsView: View {
             SettingsDivider()
 
             SectionHeader("Hotkeys")
-            HotkeyRecorder(label: "Transcribe:", hotkey: $settings.transcribeHotkey)
-            HotkeyRecorder(label: "Translate:", hotkey: $settings.translateHotkey)
-            SettingsDescription("Click to record a new key. ESC to cancel. Supports Fn, F1–F12, and modifier combos.")
+            HotkeyRecorder(label: "Transcribe:", hotkey: $settings.transcribeHotkey, otherHotkey: settings.translateHotkey)
+            HotkeyRecorder(label: "Translate:", hotkey: $settings.translateHotkey, otherHotkey: settings.transcribeHotkey)
+            SettingsDescription("Click to record a new key. ESC to cancel. Supports Fn, Option, Control, Shift, Command, F1–F12, and modifier combos.")
 
             SettingsDivider()
 

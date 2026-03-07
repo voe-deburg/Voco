@@ -252,8 +252,8 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
-                HotkeyRecorder(label: "Transcribe:", hotkey: $settings.transcribeHotkey)
-                HotkeyRecorder(label: "Translate:", hotkey: $settings.translateHotkey)
+                HotkeyRecorder(label: "Transcribe:", hotkey: $settings.transcribeHotkey, otherHotkey: settings.translateHotkey)
+                HotkeyRecorder(label: "Translate:", hotkey: $settings.translateHotkey, otherHotkey: settings.transcribeHotkey)
             }
 
             Text("Press once to start recording, press again to stop and process. ESC to cancel.")

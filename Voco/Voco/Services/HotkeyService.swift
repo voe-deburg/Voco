@@ -23,19 +23,53 @@ enum HotkeyService {
     nonisolated(unsafe) static var translateRef: EventHotKeyRef?
     nonisolated(unsafe) static var escGlobalMonitor: Any?
     nonisolated(unsafe) static var escLocalMonitor: Any?
-    nonisolated(unsafe) static var fnTapPort: CFMachPort?
-    nonisolated(unsafe) static var fnRunLoopSource: CFRunLoopSource?
+    nonisolated(unsafe) static var modifierTapPort: CFMachPort?
+    nonisolated(unsafe) static var modifierRunLoopSource: CFRunLoopSource?
     nonisolated(unsafe) static var pipeline: VoiceInputPipeline?
     nonisolated(unsafe) static var isSuspended = false
     nonisolated(unsafe) static var carbonHandlerInstalled = false
-    nonisolated(unsafe) static var fnHealthTimer: Timer?
+    nonisolated(unsafe) static var modifierHealthTimer: Timer?
 
-    // Fn key state
-    nonisolated(unsafe) static var fnWasPressed = false
-    nonisolated(unsafe) static var otherKeyDuringFn = false
-    nonisolated(unsafe) static var fnModifiers: UInt32 = 0
+    // Solo modifier key state
+    nonisolated(unsafe) static var soloModifierKeyCode: UInt16? = nil
+    nonisolated(unsafe) static var otherKeyDuringModifier = false
+    nonisolated(unsafe) static var modifierAdditionalMods: UInt32 = 0
 
     static let fnKeyCode: UInt16 = 0x3F
+
+    static let modifierKeyCodes: Set<UInt16> = [
+        0x3F,        // Fn
+        0x3A, 0x3D,  // Left/Right Option
+        0x3B, 0x3E,  // Left/Right Control
+        0x38, 0x3C,  // Left/Right Shift
+        0x37, 0x36,  // Left/Right Command
+    ]
+
+    static func isModifierKey(_ keyCode: UInt16) -> Bool {
+        modifierKeyCodes.contains(keyCode)
+    }
+
+    /// Normalize right-side modifier keyCodes to left-side equivalents.
+    static func normalizeModifierKeyCode(_ keyCode: UInt16) -> UInt16 {
+        switch keyCode {
+        case 0x3D: return 0x3A  // Right Option → Left Option
+        case 0x3E: return 0x3B  // Right Control → Left Control
+        case 0x3C: return 0x38  // Right Shift → Left Shift
+        case 0x36: return 0x37  // Right Command → Left Command
+        default: return keyCode
+        }
+    }
+
+    static func cgFlagForModifierKey(_ keyCode: UInt16) -> CGEventFlags? {
+        switch keyCode {
+        case 0x3F: return CGEventFlags(rawValue: 0x800000)
+        case 0x3A, 0x3D: return .maskAlternate
+        case 0x3B, 0x3E: return .maskControl
+        case 0x38, 0x3C: return .maskShift
+        case 0x37, 0x36: return .maskCommand
+        default: return nil
+        }
+    }
 
     @MainActor
     static func register(pipeline: VoiceInputPipeline) {
@@ -63,9 +97,9 @@ enum HotkeyService {
         isSuspended = false
         // Re-enable Fn tap in case system disabled it
         let settings = AppSettings.shared
-        let needsFn = settings.transcribeHotkey.keyCode == fnKeyCode || settings.translateHotkey.keyCode == fnKeyCode
-        if needsFn {
-            ensureFnTapAlive()
+        let needsTap = isModifierKey(settings.transcribeHotkey.keyCode) || isModifierKey(settings.translateHotkey.keyCode)
+        if needsTap {
+            ensureModifierTapAlive()
         }
         print("[Voco] Hotkeys resumed")
     }
@@ -75,15 +109,15 @@ enum HotkeyService {
         // Unregister old Carbon hotkeys
         if let ref = transcribeRef { UnregisterEventHotKey(ref); transcribeRef = nil }
         if let ref = translateRef { UnregisterEventHotKey(ref); translateRef = nil }
-        removeFnTap()
+        removeModifierTap()
 
         let settings = AppSettings.shared
         let transcribe = settings.transcribeHotkey
         let translate = settings.translateHotkey
-        let needsFn = transcribe.keyCode == fnKeyCode || translate.keyCode == fnKeyCode
+        let needsTap = isModifierKey(transcribe.keyCode) || isModifierKey(translate.keyCode)
 
-        // Register Carbon hotkeys for non-Fn keys
-        if transcribe.keyCode != fnKeyCode {
+        // Register Carbon hotkeys for non-modifier keys
+        if !isModifierKey(transcribe.keyCode) {
             var ref: EventHotKeyRef?
             let hid = transcribeID
             let status = RegisterEventHotKey(
@@ -93,7 +127,7 @@ enum HotkeyService {
             transcribeRef = ref
             print("[Voco] Registered transcribe hotkey (\(transcribe.label)): status=\(status), ref=\(ref != nil)")
         }
-        if translate.keyCode != fnKeyCode {
+        if !isModifierKey(translate.keyCode) {
             var ref: EventHotKeyRef?
             let hid = translateID
             let status = RegisterEventHotKey(
@@ -104,11 +138,11 @@ enum HotkeyService {
             print("[Voco] Registered translate hotkey (\(translate.label)): status=\(status), ref=\(ref != nil)")
         }
 
-        if needsFn {
-            installFnTap()
-            startFnHealthCheck()
+        if needsTap {
+            installModifierTap()
+            startModifierHealthCheck()
         } else {
-            stopFnHealthCheck()
+            stopModifierHealthCheck()
         }
     }
 
@@ -169,52 +203,57 @@ enum HotkeyService {
         print("[Voco] Carbon handler installed: status=\(status)")
     }
 
-    // MARK: - Fn Key Tap
+    // MARK: - Modifier Key Tap
 
-    private static func installFnTap() {
+    private static func installModifierTap() {
         let mask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue) | (1 << CGEventType.keyDown.rawValue)
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap, place: .headInsertEventTap, options: .listenOnly,
             eventsOfInterest: mask, callback: { proxy, type, event, _ -> Unmanaged<CGEvent>? in
 
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                    if let port = HotkeyService.fnTapPort { CGEvent.tapEnable(tap: port, enable: true) }
-                    print("[Voco] Fn tap re-enabled after disable")
+                    if let port = HotkeyService.modifierTapPort { CGEvent.tapEnable(tap: port, enable: true) }
+                    print("[Voco] Modifier tap re-enabled after disable")
                     return Unmanaged.passRetained(event)
                 }
 
                 guard !HotkeyService.isSuspended else { return Unmanaged.passRetained(event) }
 
-                if type == .keyDown && HotkeyService.fnWasPressed {
-                    HotkeyService.otherKeyDuringFn = true
+                if type == .keyDown && HotkeyService.soloModifierKeyCode != nil {
+                    HotkeyService.otherKeyDuringModifier = true
                     return Unmanaged.passRetained(event)
                 }
 
                 if type == .flagsChanged {
-                    let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-                    if keyCode == Int64(HotkeyService.fnKeyCode) {
-                        let fnDown = event.flags.contains(CGEventFlags(rawValue: 0x800000))
-                        if fnDown {
-                            HotkeyService.fnWasPressed = true
-                            HotkeyService.otherKeyDuringFn = false
+                    let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+
+                    if HotkeyService.isModifierKey(keyCode),
+                       let flag = HotkeyService.cgFlagForModifierKey(keyCode) {
+                        let isDown = event.flags.contains(flag)
+
+                        if isDown {
+                            HotkeyService.soloModifierKeyCode = keyCode
+                            HotkeyService.otherKeyDuringModifier = false
+                            // Capture additional modifiers (excluding the one being pressed)
                             var mods: UInt32 = 0
                             let cgFlags = event.flags
-                            if cgFlags.contains(.maskShift) { mods |= UInt32(shiftKey) }
-                            if cgFlags.contains(.maskControl) { mods |= UInt32(controlKey) }
-                            if cgFlags.contains(.maskAlternate) { mods |= UInt32(optionKey) }
-                            if cgFlags.contains(.maskCommand) { mods |= UInt32(cmdKey) }
-                            HotkeyService.fnModifiers = mods
-                        } else if HotkeyService.fnWasPressed {
-                            HotkeyService.fnWasPressed = false
-                            if !HotkeyService.otherKeyDuringFn {
-                                let capturedMods = HotkeyService.fnModifiers
+                            if cgFlags.contains(.maskShift) && keyCode != 0x38 && keyCode != 0x3C { mods |= UInt32(shiftKey) }
+                            if cgFlags.contains(.maskControl) && keyCode != 0x3B && keyCode != 0x3E { mods |= UInt32(controlKey) }
+                            if cgFlags.contains(.maskAlternate) && keyCode != 0x3A && keyCode != 0x3D { mods |= UInt32(optionKey) }
+                            if cgFlags.contains(.maskCommand) && keyCode != 0x37 && keyCode != 0x36 { mods |= UInt32(cmdKey) }
+                            HotkeyService.modifierAdditionalMods = mods
+                        } else if HotkeyService.soloModifierKeyCode == keyCode {
+                            HotkeyService.soloModifierKeyCode = nil
+                            if !HotkeyService.otherKeyDuringModifier {
+                                let capturedMods = HotkeyService.modifierAdditionalMods
+                                let normalizedKey = HotkeyService.normalizeModifierKeyCode(keyCode)
                                 guard let p = HotkeyService.pipeline else { return Unmanaged.passRetained(event) }
                                 Task { @MainActor in
                                     let s = AppSettings.shared
-                                    if s.transcribeHotkey.keyCode == HotkeyService.fnKeyCode &&
+                                    if s.transcribeHotkey.keyCode == normalizedKey &&
                                        s.transcribeHotkey.modifiers == capturedMods {
                                         await p.toggle(mode: .reformat)
-                                    } else if s.translateHotkey.keyCode == HotkeyService.fnKeyCode &&
+                                    } else if s.translateHotkey.keyCode == normalizedKey &&
                                               s.translateHotkey.modifiers == capturedMods {
                                         await p.toggle(mode: .reformatAndTranslate)
                                     }
@@ -226,54 +265,53 @@ enum HotkeyService {
                 return Unmanaged.passRetained(event)
             }, userInfo: nil
         ) else {
-            print("[Voco] Failed to create CGEventTap for Fn key — check Accessibility permission")
+            print("[Voco] Failed to create CGEventTap for modifier keys — check Accessibility permission")
             return
         }
-        fnTapPort = tap
+        modifierTapPort = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        fnRunLoopSource = source
+        modifierRunLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-        print("[Voco] Fn tap installed")
+        print("[Voco] Modifier tap installed")
     }
 
-    private static func startFnHealthCheck() {
-        stopFnHealthCheck()
-        fnHealthTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+    private static func startModifierHealthCheck() {
+        stopModifierHealthCheck()
+        modifierHealthTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
             MainActor.assumeIsolated {
-                ensureFnTapAlive()
+                ensureModifierTapAlive()
             }
         }
     }
 
-    private static func stopFnHealthCheck() {
-        fnHealthTimer?.invalidate()
-        fnHealthTimer = nil
+    private static func stopModifierHealthCheck() {
+        modifierHealthTimer?.invalidate()
+        modifierHealthTimer = nil
     }
 
     @MainActor
-    private static func ensureFnTapAlive() {
-        if let port = fnTapPort {
+    private static func ensureModifierTapAlive() {
+        if let port = modifierTapPort {
             if !CGEvent.tapIsEnabled(tap: port) {
                 CGEvent.tapEnable(tap: port, enable: true)
-                print("[Voco] Fn tap was disabled — re-enabled by health check")
+                print("[Voco] Modifier tap was disabled — re-enabled by health check")
             }
         } else {
-            // Tap doesn't exist (initial creation failed or was removed) — retry
-            print("[Voco] Fn tap not found — attempting to recreate")
-            installFnTap()
+            print("[Voco] Modifier tap not found — attempting to recreate")
+            installModifierTap()
         }
     }
 
-    private static func removeFnTap() {
-        stopFnHealthCheck()
-        if let source = fnRunLoopSource {
+    private static func removeModifierTap() {
+        stopModifierHealthCheck()
+        if let source = modifierRunLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
-            fnRunLoopSource = nil
+            modifierRunLoopSource = nil
         }
-        if let port = fnTapPort {
+        if let port = modifierTapPort {
             CGEvent.tapEnable(tap: port, enable: false)
-            fnTapPort = nil
+            modifierTapPort = nil
         }
     }
 
@@ -305,8 +343,13 @@ enum HotkeyService {
         case kVK_Tab: keyName = "⇥"
         case kVK_Delete: keyName = "⌫"
         case 0x3F: keyName = "🌐 Fn"
+        case 0x3A: keyName = "⌥ Option"
+        case 0x3B: keyName = "⌃ Control"
+        case 0x38: keyName = "⇧ Shift"
+        case 0x37: keyName = "⌘ Command"
         default:
-            let source = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
+            // Use ASCII-capable layout to avoid nil layoutData with non-Latin input sources (e.g. Chinese)
+            let source = TISCopyCurrentASCIICapableKeyboardLayoutInputSource().takeRetainedValue()
             let layoutData = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData)
             if let data = layoutData {
                 let layout = unsafeBitCast(data, to: CFData.self)

@@ -6,6 +6,7 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showClearConfirm = false
     @State private var expandedID: PersistentIdentifier?
+    @State private var copiedID: PersistentIdentifier?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -70,6 +71,20 @@ struct HistoryView: View {
                                         Text(entry.timestamp, format: .dateTime.month().day().hour().minute())
                                             .font(.caption2)
                                             .foregroundStyle(.tertiary)
+                                        Button {
+                                            NSPasteboard.general.clearContents()
+                                            NSPasteboard.general.setString(entry.processedText, forType: .string)
+                                            copiedID = entry.persistentModelID
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                                if copiedID == entry.persistentModelID { copiedID = nil }
+                                            }
+                                        } label: {
+                                            Image(systemName: copiedID == entry.persistentModelID ? "checkmark" : "doc.on.doc")
+                                                .font(.caption)
+                                                .foregroundStyle(copiedID == entry.persistentModelID ? .green : .secondary)
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .help("Copy to clipboard")
                                     }
                                 }
                             } else {
