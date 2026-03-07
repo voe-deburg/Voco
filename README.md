@@ -72,6 +72,19 @@ Voco uses cloud APIs with OpenAI-compatible endpoints. STT and LLM are configure
 - Accessibility permission (for pasting text into other apps)
 - API keys for your chosen STT and LLM providers
 
+### Homebrew
+
+```bash
+brew tap Stanleytowne/voco
+brew install --cask voco
+```
+
+### Download
+
+Grab the latest `.dmg` from [Releases](https://github.com/Stanleytowne/Voco/releases), open it, and drag Voco to your Applications folder.
+
+> **Note:** Since the app is not notarized, macOS may block it on first launch. Right-click the app and select **Open** to bypass Gatekeeper.
+
 ### Build from Source
 
 ```bash
