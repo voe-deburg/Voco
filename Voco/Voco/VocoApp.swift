@@ -115,10 +115,11 @@ struct VocoApp: App {
                 appDelegate.pipeline.setModelContext(container.mainContext)
                 if !didOpenSettings {
                     didOpenSettings = true
-                    openWindow(id: "settings")
+                    let windowID = AppSettings.shared.hasCompletedOnboarding ? "settings" : "onboarding"
+                    openWindow(id: windowID)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         appDelegate.activateAsRegularApp()
-                        for window in NSApp.windows where window.title == "Settings" {
+                        for window in NSApp.windows where window.isVisible && !window.title.isEmpty && !(window is NSPanel) {
                             window.makeKeyAndOrderFront(nil)
                         }
                     }

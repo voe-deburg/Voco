@@ -3,10 +3,14 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentStep = 0
-    @State private var apiKey = ""
+    @State private var sttApiKey = ""
+    @State private var llmApiKey = ""
+    @State private var micGranted = PermissionsService.checkMicrophonePermission()
+    @State private var accessibilityGranted = PermissionsService.checkAccessibilityPermission()
     private let settings = AppSettings.shared
 
-    private let totalSteps = 5
+    private let permissionTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let totalSteps = 6
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,8 +32,9 @@ struct OnboardingView: View {
                 case 0: welcomeStep
                 case 1: microphoneStep
                 case 2: accessibilityStep
-                case 3: apiKeyStep
-                case 4: hotkeyStep
+                case 3: sttApiKeyStep
+                case 4: llmApiKeyStep
+                case 5: hotkeyStep
                 default: EmptyView()
                 }
             }
@@ -61,6 +66,10 @@ struct OnboardingView: View {
             .padding()
         }
         .frame(width: 500, height: 450)
+        .onReceive(permissionTimer) { _ in
+            micGranted = PermissionsService.checkMicrophonePermission()
+            accessibilityGranted = PermissionsService.checkAccessibilityPermission()
+        }
     }
 
     private var welcomeStep: some View {
@@ -89,13 +98,14 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            if PermissionsService.checkMicrophonePermission() {
+            if micGranted {
                 Label("Microphone access granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else {
                 Button("Grant Microphone Access") {
                     Task {
-                        await PermissionsService.requestMicrophonePermission()
+                        let result = await PermissionsService.requestMicrophonePermission()
+                        micGranted = result
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -115,7 +125,7 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            if PermissionsService.checkAccessibilityPermission() {
+            if accessibilityGranted {
                 Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else {
@@ -128,25 +138,56 @@ struct OnboardingView: View {
         .padding()
     }
 
-    private var apiKeyStep: some View {
+    private var sttApiKeyStep: some View {
         VStack(spacing: 16) {
-            Image(systemName: "key.fill")
+            Image(systemName: "waveform")
                 .font(.system(size: 48))
-                .foregroundStyle(.yellow)
-            Text("API Keys")
+                .foregroundStyle(.mint)
+            Text("Speech-to-Text API")
                 .font(.title2.bold())
-            Text("Configure API keys for STT and LLM. You can change these later in Settings.")
+            Text("Configure the API key for your STT provider (e.g. DashScope, OpenAI).\nYou can change this later in Settings.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
 
-            SecureField("LLM API Key (Cerebras, OpenAI, etc.)", text: $apiKey)
+            SecureField("STT API Key", text: $sttApiKey)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 350)
 
-            if !apiKey.isEmpty {
+            if !sttApiKey.isEmpty {
                 Button("Save Key") {
-                    try? KeychainHelper.save(key: "llm_api_key", value: apiKey)
+                    try? KeychainHelper.save(key: "stt_api_key", value: sttApiKey)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            Button("Skip (configure later in Settings)") {
+                currentStep += 1
+            }
+            .foregroundStyle(.secondary)
+        }
+        .padding()
+    }
+
+    private var llmApiKeyStep: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "brain")
+                .font(.system(size: 48))
+                .foregroundStyle(.yellow)
+            Text("LLM API")
+                .font(.title2.bold())
+            Text("Configure the API key for your LLM provider (e.g. OpenAI, Cerebras).\nYou can change this later in Settings.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 20)
+
+            SecureField("LLM API Key", text: $llmApiKey)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 350)
+
+            if !llmApiKey.isEmpty {
+                Button("Save Key") {
+                    try? KeychainHelper.save(key: "llm_api_key", value: llmApiKey)
                 }
                 .buttonStyle(.borderedProminent)
             }
