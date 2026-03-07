@@ -13,7 +13,7 @@ struct OnboardingView: View {
     @State private var llmSaved = false
     @State private var micGranted = PermissionsService.checkMicrophonePermission()
     @State private var accessibilityGranted = PermissionsService.checkAccessibilityPermission()
-    private let settings = AppSettings.shared
+    @Bindable private var settings = AppSettings.shared
 
     private let permissionTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let totalSteps = 6
@@ -64,7 +64,13 @@ struct OnboardingView: View {
                 } else {
                     Button("Get Started") {
                         settings.hasCompletedOnboarding = true
-                        dismiss()
+                        // Relaunch so hotkeys and providers pick up new settings
+                        let url = Bundle.main.bundleURL
+                        let task = Process()
+                        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+                        task.arguments = ["-n", url.path]
+                        try? task.run()
+                        NSApp.terminate(nil)
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -241,31 +247,13 @@ struct OnboardingView: View {
                 .foregroundStyle(.purple)
             Text("Hotkeys")
                 .font(.title2.bold())
-            Text("Default hotkeys are set. You can change them in Settings.")
+            Text("Click a hotkey to change it. You can also change them later in Settings.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Transcribe:")
-                        .frame(width: 90, alignment: .trailing)
-                        .fontWeight(.medium)
-                    Text(settings.transcribeHotkey.label)
-                        .monospaced()
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary))
-                }
-                HStack {
-                    Text("Translate:")
-                        .frame(width: 90, alignment: .trailing)
-                        .fontWeight(.medium)
-                    Text(settings.translateHotkey.label)
-                        .monospaced()
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary))
-                }
+                HotkeyRecorder(label: "Transcribe:", hotkey: $settings.transcribeHotkey)
+                HotkeyRecorder(label: "Translate:", hotkey: $settings.translateHotkey)
             }
 
             Text("Press once to start recording, press again to stop and process. ESC to cancel.")
