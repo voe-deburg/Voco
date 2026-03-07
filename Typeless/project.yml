@@ -1,0 +1,58 @@
+name: OpenTypeLess
+options:
+  bundleIdPrefix: com.opentypeless
+  deploymentTarget:
+    macOS: "15.0"
+  xcodeVersion: "26.3"
+  generateEmptyDirectories: true
+
+packages:
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit.git
+    from: "0.9.0"
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts.git
+    from: "2.1.0"
+  LaunchAtLogin-Modern:
+    url: https://github.com/sindresorhus/LaunchAtLogin-Modern.git
+    from: "1.1.0"
+
+targets:
+  OpenTypeLess:
+    type: application
+    platform: macOS
+    sources:
+      - path: Typeless
+        excludes:
+          - "**/*.plist"
+          - "**/*.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.opentypeless.app
+        PRODUCT_NAME: OpenTypeLess
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGN_ENTITLEMENTS: Typeless.entitlements
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_APP_SANDBOX: false
+        SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - package: WhisperKit
+      - package: KeyboardShortcuts
+      - package: LaunchAtLogin-Modern
+        product: LaunchAtLogin
+    entitlements:
+      path: Typeless.entitlements
+    info:
+      path: Info.plist
+      properties:
+        CFBundleIconFile: AppIcon
+        LSUIElement: true
+        NSMicrophoneUsageDescription: "OpenTypeLess needs microphone access to record your voice for transcription."
+        NSSpeechRecognitionUsageDescription: "OpenTypeLess uses speech recognition to transcribe your voice input."
+        CFBundleDisplayName: OpenTypeLess
