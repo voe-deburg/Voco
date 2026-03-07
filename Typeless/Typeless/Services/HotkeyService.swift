@@ -134,15 +134,12 @@ enum HotkeyService {
         guard event.keyCode == UInt16(kVK_Escape) else { return false }
         guard !isSuspended else { return false }
         guard let p = pipeline else { return false }
-        // Only consume ESC when pipeline is active
-        var isActive = false
-        DispatchQueue.main.sync { isActive = !p.state.isIdle }
-        guard isActive else { return false }
         Task { @MainActor in
+            guard !p.state.isIdle else { return }
             p.cancel()
             print("[Typeless] Cancelled via ESC")
         }
-        return true
+        return false // never consume ESC — let it pass through to other handlers
     }
 
     // MARK: - Carbon Handler
