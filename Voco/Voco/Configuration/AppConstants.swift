@@ -3,7 +3,7 @@ import Foundation
 enum AppConstants {
     static let bundleID = "com.voco.app"
     static let appName = "Voco"
-    static let appVersion = "1.0.3"
+    static let appVersion = "1.0.4"
     static let githubRepo = "Stanleytowne/Voco"
     static let modelsDirectory: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

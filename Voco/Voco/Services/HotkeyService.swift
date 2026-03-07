@@ -29,6 +29,7 @@ enum HotkeyService {
     nonisolated(unsafe) static var isSuspended = false
     nonisolated(unsafe) static var carbonHandlerInstalled = false
     nonisolated(unsafe) static var modifierHealthTimer: Timer?
+    nonisolated(unsafe) static var accessibilityWasGranted = false
 
     // Solo modifier key state
     nonisolated(unsafe) static var soloModifierKeyCode: UInt16? = nil
@@ -74,6 +75,7 @@ enum HotkeyService {
     @MainActor
     static func register(pipeline: VoiceInputPipeline) {
         self.pipeline = pipeline
+        accessibilityWasGranted = AXIsProcessTrusted()
 
         if !carbonHandlerInstalled {
             installCarbonHandler()
@@ -83,7 +85,7 @@ enum HotkeyService {
         registerHotkeys()
         installEscMonitors()
 
-        print("[Voco] HotkeyService registered")
+        print("[Voco] HotkeyService registered (accessibility=\(accessibilityWasGranted))")
     }
 
     @MainActor
@@ -292,14 +294,31 @@ enum HotkeyService {
 
     @MainActor
     private static func ensureModifierTapAlive() {
+        let hasAccessibility = AXIsProcessTrusted()
+
         if let port = modifierTapPort {
             if !CGEvent.tapIsEnabled(tap: port) {
                 CGEvent.tapEnable(tap: port, enable: true)
                 print("[Voco] Modifier tap was disabled — re-enabled by health check")
             }
-        } else {
-            print("[Voco] Modifier tap not found — attempting to recreate")
+        } else if hasAccessibility {
+            if !accessibilityWasGranted {
+                accessibilityWasGranted = true
+                print("[Voco] Accessibility just granted — attempting to create modifier tap")
+            }
             installModifierTap()
+            // If tap still failed after accessibility was granted, the app likely needs a restart
+            if modifierTapPort == nil {
+                print("[Voco] Modifier tap still failed after accessibility granted — restarting app")
+                let url = Bundle.main.bundleURL
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+                task.arguments = ["-n", url.path]
+                try? task.run()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    NSApp.terminate(nil)
+                }
+            }
         }
     }
 
