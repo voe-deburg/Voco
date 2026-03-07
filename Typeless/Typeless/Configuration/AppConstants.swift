@@ -1,11 +1,11 @@
 import Foundation
 
 enum AppConstants {
-    static let bundleID = "com.opentypeless.app"
-    static let appName = "OpenTypeLess"
+    static let bundleID = "com.voco.app"
+    static let appName = "Voco"
     static let modelsDirectory: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("OpenTypeLess/Models", isDirectory: true)
+        return appSupport.appendingPathComponent("Voco/Models", isDirectory: true)
     }()
     static let defaultWhisperModel = "openai_whisper-base"
     static let clipboardRestoreDelay: TimeInterval = 0.2

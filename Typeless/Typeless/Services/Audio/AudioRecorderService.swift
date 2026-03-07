@@ -102,7 +102,7 @@ final class AudioRecorderService {
         guard let device else {
             throw NSError(domain: "AudioRecorder", code: -1, userInfo: [NSLocalizedDescriptionKey: "No audio input device found"])
         }
-        print("[Typeless] Recording with device: \(device.localizedName)")
+        print("[Voco] Recording with device: \(device.localizedName)")
 
         let input = try AVCaptureDeviceInput(device: device)
         guard session.canAddInput(input) else {
@@ -118,7 +118,7 @@ final class AudioRecorderService {
 
         let delegate = AudioCaptureDelegate(levelBox: levelBox)
         self.captureDelegate = delegate
-        output.setSampleBufferDelegate(delegate, queue: DispatchQueue(label: "typeless.audio-capture"))
+        output.setSampleBufferDelegate(delegate, queue: DispatchQueue(label: "voco.audio-capture"))
 
         session.startRunning()
         self.captureSession = session
@@ -154,12 +154,12 @@ final class AudioRecorderService {
         let deviceID = findDeviceID(uid: uid)
 
         guard deviceID != 0 else {
-            print("[Typeless] Microphone with UID \(uid) not found, using default")
+            print("[Voco] Microphone with UID \(uid) not found, using default")
             return 0
         }
 
         guard let audioUnit = engine.inputNode.audioUnit else {
-            print("[Typeless] No audio unit available on input node")
+            print("[Voco] No audio unit available on input node")
             return 0
         }
         var inputDeviceID = deviceID
@@ -172,11 +172,11 @@ final class AudioRecorderService {
             UInt32(MemoryLayout<AudioDeviceID>.size)
         )
         if status != noErr {
-            print("[Typeless] Failed to set input device: \(status)")
+            print("[Voco] Failed to set input device: \(status)")
         }
 
         let rate = deviceNominalSampleRate(deviceID)
-        print("[Typeless] Device nominal sample rate: \(rate) Hz")
+        print("[Voco] Device nominal sample rate: \(rate) Hz")
         return rate
     }
 
@@ -261,7 +261,7 @@ private final class AudioCaptureDelegate: NSObject, AVCaptureAudioDataOutputSamp
         if sampleRate == 0, let asbd {
             sampleRate = asbd.mSampleRate
             channelCount = max(1, Int(asbd.mChannelsPerFrame))
-            print("[Typeless] Capture format: \(sampleRate) Hz, \(asbd.mBitsPerChannel) bit, \(channelCount) ch, float=\(asbd.mFormatFlags & kAudioFormatFlagIsFloat != 0)")
+            print("[Voco] Capture format: \(sampleRate) Hz, \(asbd.mBitsPerChannel) bit, \(channelCount) ch, float=\(asbd.mFormatFlags & kAudioFormatFlagIsFloat != 0)")
         }
 
         // Extract Float32 mono samples and calculate RMS
@@ -314,11 +314,11 @@ private final class AudioCaptureDelegate: NSObject, AVCaptureAudioDataOutputSamp
         lock.unlock()
 
         guard !rawSamples.isEmpty, sampleRate > 0 else {
-            print("[Typeless] No audio samples captured")
+            print("[Voco] No audio samples captured")
             return Data()
         }
 
-        print("[Typeless] Captured \(rawSamples.count) samples at \(sampleRate) Hz (\(Double(rawSamples.count) / sampleRate)s)")
+        print("[Voco] Captured \(rawSamples.count) samples at \(sampleRate) Hz (\(Double(rawSamples.count) / sampleRate)s)")
 
         // Resample to 16kHz using linear interpolation
         let targetRate = AppConstants.sampleRate
@@ -343,7 +343,7 @@ private final class AudioCaptureDelegate: NSObject, AVCaptureAudioDataOutputSamp
         }
 
         let wavData = AudioConverter.pcmToWAV(pcmData: pcmData)
-        print("[Typeless] WAV data: \(wavData.count) bytes (\(Double(targetCount) / targetRate)s at 16kHz)")
+        print("[Voco] WAV data: \(wavData.count) bytes (\(Double(targetCount) / targetRate)s at 16kHz)")
         return wavData
     }
 }

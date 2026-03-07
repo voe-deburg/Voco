@@ -67,15 +67,15 @@ final class OpenAICompatibleSTT: STTProvider {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        print("[Typeless] STT request: \(endpoint) model=\(model) (chat completions)")
+        print("[Voco] STT request: \(endpoint) model=\(model) (chat completions)")
         let (data, response) = try await URLSession.shared.data(for: request)
 
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-        print("[Typeless] STT response: HTTP \(statusCode), \(data.count) bytes")
+        print("[Voco] STT response: HTTP \(statusCode), \(data.count) bytes")
 
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             let responseBody = String(data: data, encoding: .utf8) ?? "(non-utf8)"
-            print("[Typeless] STT error body: \(responseBody)")
+            print("[Voco] STT error body: \(responseBody)")
             throw STTError.apiError(parseError(data: data, statusCode: statusCode))
         }
 
@@ -134,15 +134,15 @@ final class OpenAICompatibleSTT: STTProvider {
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
 
-        print("[Typeless] STT request: \(endpoint) model=\(model) (whisper)")
+        print("[Voco] STT request: \(endpoint) model=\(model) (whisper)")
         let (data, response) = try await URLSession.shared.data(for: request)
 
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-        print("[Typeless] STT response: HTTP \(statusCode), \(data.count) bytes")
+        print("[Voco] STT response: HTTP \(statusCode), \(data.count) bytes")
 
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             let responseBody = String(data: data, encoding: .utf8) ?? "(non-utf8)"
-            print("[Typeless] STT error body: \(responseBody)")
+            print("[Voco] STT error body: \(responseBody)")
             throw STTError.apiError(parseError(data: data, statusCode: statusCode))
         }
 

@@ -22,7 +22,7 @@ enum PasteService {
             // Confirmed no text field — clipboard only
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)
-            print("[Typeless] No text field focused — text copied to clipboard.")
+            print("[Voco] No text field focused — text copied to clipboard.")
             return .copied
         }
 
@@ -78,7 +78,7 @@ enum PasteService {
         if settableErr == .success && settable.boolValue { return false }
 
         // We got a focused element and it's NOT a text input
-        print("[Typeless] Focused element role=\(role), not a text field → clipboard only")
+        print("[Voco] Focused element role=\(role), not a text field → clipboard only")
         return true
     }
 }

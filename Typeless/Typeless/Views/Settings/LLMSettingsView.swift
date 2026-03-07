@@ -9,7 +9,7 @@ final class PromptFileHelper {
 
     private let promptsDir: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("OpenTypeLess/Prompts", isDirectory: true)
+        return appSupport.appendingPathComponent("Voco/Prompts", isDirectory: true)
     }()
 
     private var watchers: [String: DispatchSourceFileSystemObject] = [:]
@@ -48,7 +48,7 @@ final class PromptFileHelper {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 if let text = self?.read(filename: filename) {
                     onChange(text.trimmingCharacters(in: .whitespacesAndNewlines))
-                    print("[Typeless] Prompt file \(filename) reloaded")
+                    print("[Voco] Prompt file \(filename) reloaded")
                 }
             }
         }

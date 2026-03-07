@@ -5,3 +5,6 @@ Typeless/.swiftpm/
 xcuserdata/
 DerivedData/
 .build/
+.env
+*.secrets
+.claude/

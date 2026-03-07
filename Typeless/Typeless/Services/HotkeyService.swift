@@ -48,13 +48,13 @@ enum HotkeyService {
         registerHotkeys()
         installEscMonitors()
 
-        print("[Typeless] HotkeyService registered")
+        print("[Voco] HotkeyService registered")
     }
 
     @MainActor
     static func suspend() {
         isSuspended = true
-        print("[Typeless] Hotkeys suspended")
+        print("[Voco] Hotkeys suspended")
     }
 
     @MainActor
@@ -64,7 +64,7 @@ enum HotkeyService {
         if let port = fnTapPort {
             CGEvent.tapEnable(tap: port, enable: true)
         }
-        print("[Typeless] Hotkeys resumed")
+        print("[Voco] Hotkeys resumed")
     }
 
     @MainActor
@@ -88,7 +88,7 @@ enum HotkeyService {
                 hid, GetApplicationEventTarget(), 0, &ref
             )
             transcribeRef = ref
-            print("[Typeless] Registered transcribe hotkey (\(transcribe.label)): status=\(status), ref=\(ref != nil)")
+            print("[Voco] Registered transcribe hotkey (\(transcribe.label)): status=\(status), ref=\(ref != nil)")
         }
         if translate.keyCode != fnKeyCode {
             var ref: EventHotKeyRef?
@@ -98,7 +98,7 @@ enum HotkeyService {
                 hid, GetApplicationEventTarget(), 0, &ref
             )
             translateRef = ref
-            print("[Typeless] Registered translate hotkey (\(translate.label)): status=\(status), ref=\(ref != nil)")
+            print("[Voco] Registered translate hotkey (\(translate.label)): status=\(status), ref=\(ref != nil)")
         }
 
         if needsFn {
@@ -126,7 +126,7 @@ enum HotkeyService {
             return event
         }
 
-        print("[Typeless] ESC monitors installed")
+        print("[Voco] ESC monitors installed")
     }
 
     @discardableResult
@@ -137,7 +137,7 @@ enum HotkeyService {
         Task { @MainActor in
             guard !p.state.isIdle else { return }
             p.cancel()
-            print("[Typeless] Cancelled via ESC")
+            print("[Voco] Cancelled via ESC")
         }
         return false // never consume ESC — let it pass through to other handlers
     }
@@ -152,7 +152,7 @@ enum HotkeyService {
             GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
                             nil, MemoryLayout<EventHotKeyID>.size, nil, &hid)
             guard let p = HotkeyService.pipeline else { return noErr }
-            print("[Typeless] Carbon hotkey fired: id=\(hid.id)")
+            print("[Voco] Carbon hotkey fired: id=\(hid.id)")
             switch hid.id {
             case 1: Task { @MainActor in await p.toggle(mode: .reformat) }
             case 2: Task { @MainActor in await p.toggle(mode: .reformatAndTranslate) }
@@ -160,7 +160,7 @@ enum HotkeyService {
             }
             return noErr
         }, 1, &eventType, nil, nil)
-        print("[Typeless] Carbon handler installed: status=\(status)")
+        print("[Voco] Carbon handler installed: status=\(status)")
     }
 
     // MARK: - Fn Key Tap
@@ -173,7 +173,7 @@ enum HotkeyService {
 
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
                     if let port = HotkeyService.fnTapPort { CGEvent.tapEnable(tap: port, enable: true) }
-                    print("[Typeless] Fn tap re-enabled after disable")
+                    print("[Voco] Fn tap re-enabled after disable")
                     return Unmanaged.passRetained(event)
                 }
 
@@ -220,7 +220,7 @@ enum HotkeyService {
                 return Unmanaged.passRetained(event)
             }, userInfo: nil
         ) else {
-            print("[Typeless] Failed to create CGEventTap for Fn key — check Accessibility permission")
+            print("[Voco] Failed to create CGEventTap for Fn key — check Accessibility permission")
             return
         }
         fnTapPort = tap
@@ -228,7 +228,7 @@ enum HotkeyService {
         fnRunLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-        print("[Typeless] Fn tap installed")
+        print("[Voco] Fn tap installed")
     }
 
     private static func removeFnTap() {

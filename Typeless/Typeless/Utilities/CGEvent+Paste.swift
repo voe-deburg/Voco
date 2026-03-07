@@ -6,7 +6,7 @@ enum PasteSimulator {
     @MainActor
     static func simulatePaste() async {
         guard AXIsProcessTrusted() else {
-            print("[Typeless] Accessibility not granted — cannot simulate Cmd+V. Text is in clipboard.")
+            print("[Voco] Accessibility not granted — cannot simulate Cmd+V. Text is in clipboard.")
             return
         }
 

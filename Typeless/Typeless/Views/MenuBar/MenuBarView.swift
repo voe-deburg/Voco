@@ -79,7 +79,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Quit OpenTypeLess") {
+            Button("Quit Voco") {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q", modifiers: .command)

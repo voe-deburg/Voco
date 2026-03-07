@@ -68,7 +68,7 @@ struct OnboardingView: View {
             Image(systemName: "mic.circle.fill")
                 .font(.system(size: 64))
                 .foregroundStyle(Color.accentColor)
-            Text("Welcome to OpenTypeLess")
+            Text("Welcome to Voco")
                 .font(.largeTitle.bold())
             Text("Voice input that understands you. Speak naturally, get clean text pasted anywhere.")
                 .multilineTextAlignment(.center)
@@ -85,7 +85,7 @@ struct OnboardingView: View {
                 .foregroundStyle(.orange)
             Text("Microphone Access")
                 .font(.title2.bold())
-            Text("OpenTypeLess needs microphone access to hear your voice.")
+            Text("Voco needs microphone access to hear your voice.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 

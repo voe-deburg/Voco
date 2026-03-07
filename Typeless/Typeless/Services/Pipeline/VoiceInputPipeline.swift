@@ -132,7 +132,7 @@ final class VoiceInputPipeline {
         let audioData = audioRecorder.stopRecording()
 
         guard audioData.count > 44 else {
-            print("[Typeless] No audio data recorded (size: \(audioData.count))")
+            print("[Voco] No audio data recorded (size: \(audioData.count))")
             state = .error("No audio recorded. Check microphone permissions and selection.")
             updateOverlay()
             if settings.audioFeedback { AudioFeedbackService.playError() }
@@ -163,7 +163,7 @@ final class VoiceInputPipeline {
                 self.currentTranscription = rawText
 
                 if rawText.isEmpty {
-                    print("[Typeless] Empty transcription, skipping LLM")
+                    print("[Voco] Empty transcription, skipping LLM")
                     self.state = .idle
                     self.updateOverlay()
                     return
@@ -186,12 +186,12 @@ final class VoiceInputPipeline {
                     tone: tone
                 )
 
-                print("[Typeless] ── Pipeline ──")
-                print("[Typeless] Mode: \(self.activeMode.rawValue)")
-                print("[Typeless] Active app: \(self.activeAppName) (\(self.activeAppBundleID))")
-                print("[Typeless] STT result: \(rawText)")
-                print("[Typeless] System prompt:\n\(systemPrompt)")
-                print("[Typeless] ────────────")
+                print("[Voco] ── Pipeline ──")
+                print("[Voco] Mode: \(self.activeMode.rawValue)")
+                print("[Voco] Active app: \(self.activeAppName) (\(self.activeAppBundleID))")
+                print("[Voco] STT result: \(rawText)")
+                print("[Voco] System prompt:\n\(systemPrompt)")
+                print("[Voco] ────────────")
 
                 let llmProvider = LLMProviderFactory.create(for: self.settings)
                 let processedText = try await llmProvider.process(
@@ -201,9 +201,9 @@ final class VoiceInputPipeline {
 
                 try Task.checkCancellation()
 
-                print("[Typeless] LLM output: \(processedText)")
+                print("[Voco] LLM output: \(processedText)")
                 if processedText.isEmpty {
-                    print("[Typeless] Empty LLM output, skipping paste")
+                    print("[Voco] Empty LLM output, skipping paste")
                     self.state = .idle
                     self.updateOverlay()
                     return
@@ -233,7 +233,7 @@ final class VoiceInputPipeline {
                 self.updateOverlay()
             } catch {
                 let msg = error.localizedDescription
-                print("[Typeless] Pipeline error: \(msg)")
+                print("[Voco] Pipeline error: \(msg)")
                 self.lastError = msg
                 self.state = .error(msg)
                 self.updateOverlay()

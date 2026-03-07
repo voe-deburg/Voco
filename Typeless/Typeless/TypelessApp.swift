@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct OpenTypeLessApp: App {
+struct VocoApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.openWindow) private var openWindow
     @State private var didOpenSettings = false
@@ -74,7 +74,7 @@ struct OpenTypeLessApp: App {
             MenuBarView(pipeline: appDelegate.pipeline)
         } label: {
             Label {
-                Text("OpenTypeLess")
+                Text("Voco")
             } icon: {
                 if appDelegate.pipeline.state.isRecording {
                     Image(systemName: "mic.fill")

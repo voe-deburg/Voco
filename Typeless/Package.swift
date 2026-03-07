@@ -3,21 +3,21 @@
 import PackageDescription
 
 let package = Package(
-    name: "OpenTypeLess",
+    name: "Voco",
     platforms: [.macOS(.v15)],
     products: [
-        .executable(name: "OpenTypeLess", targets: ["OpenTypeLess"])
+        .executable(name: "Voco", targets: ["Voco"])
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "OpenTypeLess",
+            name: "Voco",
             dependencies: [],
             path: "Typeless"
         ),
         .testTarget(
             name: "TypelessTests",
-            dependencies: ["OpenTypeLess"],
+            dependencies: ["Voco"],
             path: "TypelessTests"
         )
     ]

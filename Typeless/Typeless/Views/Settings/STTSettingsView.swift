@@ -27,7 +27,7 @@ final class MicTestService {
         }
 
         guard let device else {
-            print("[Typeless] Mic test: no audio device found")
+            print("[Voco] Mic test: no audio device found")
             return
         }
 
@@ -35,7 +35,7 @@ final class MicTestService {
             let input = try AVCaptureDeviceInput(device: device)
             if session.canAddInput(input) { session.addInput(input) }
         } catch {
-            print("[Typeless] Mic test input error: \(error)")
+            print("[Voco] Mic test input error: \(error)")
             return
         }
 
@@ -44,7 +44,7 @@ final class MicTestService {
 
         let del = MicTestAudioDelegate(levelBox: levelBox)
         self.delegate = del
-        output.setSampleBufferDelegate(del, queue: DispatchQueue(label: "typeless.mic-test"))
+        output.setSampleBufferDelegate(del, queue: DispatchQueue(label: "voco.mic-test"))
 
         session.startRunning()
         self.session = session
