@@ -45,7 +45,7 @@ Both hotkeys are fully customizable — supports Fn, F1–F12, and any modifier 
 
 ### Designed for macOS
 
-- Lives in the menu bar — no Dock icon, no clutter
+- Lives in the menu bar — always accessible from the top of your screen
 - Floating overlay shows recording status with real-time audio level
 - Global hotkeys work from any app
 - Direct paste via keyboard simulation — text appears right where your cursor is
