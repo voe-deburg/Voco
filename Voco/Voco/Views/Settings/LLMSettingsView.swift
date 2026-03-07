@@ -64,6 +64,7 @@ struct LLMSettingsView: View {
     @Bindable private var settings = AppSettings.shared
     @State private var apiKeyInput: String = ""
     @State private var keySaved = false
+    @State private var showKey = false
     @State private var testResult: String = ""
 
     private let languages = [
@@ -110,12 +111,26 @@ struct LLMSettingsView: View {
             }
 
             SettingsRow("API Key:") {
-                SecureField("sk-...", text: $apiKeyInput)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 260)
-                    .onAppear {
-                        apiKeyInput = KeychainHelper.load(key: "llm_api_key") ?? ""
+                ZStack {
+                    if showKey {
+                        TextField("sk-...", text: $apiKeyInput)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        SecureField("sk-...", text: $apiKeyInput)
+                            .textFieldStyle(.roundedBorder)
                     }
+                }
+                .frame(maxWidth: 220)
+                .onAppear {
+                    apiKeyInput = KeychainHelper.load(key: "llm_api_key") ?? ""
+                }
+                Button {
+                    showKey.toggle()
+                } label: {
+                    Image(systemName: showKey ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.plain)
+                .controlSize(.small)
                 Button(keySaved ? "Saved" : "Save") {
                     try? KeychainHelper.save(key: "llm_api_key", value: apiKeyInput)
                     keySaved = true

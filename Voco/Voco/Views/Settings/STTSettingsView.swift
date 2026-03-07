@@ -122,6 +122,7 @@ struct STTSettingsView: View {
     @State private var micTest = MicTestService()
     @State private var sttApiKeyInput: String = ""
     @State private var sttKeySaved = false
+    @State private var showSTTKey = false
 
     private static let sttLanguages: [(code: String, name: String)] = [
         ("en", "English"), ("zh", "Chinese"), ("ja", "Japanese"), ("ko", "Korean"),
@@ -181,12 +182,26 @@ struct STTSettingsView: View {
             }
 
             SettingsRow("API Key:") {
-                SecureField("sk-...", text: $sttApiKeyInput)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 260)
-                    .onAppear {
-                        sttApiKeyInput = KeychainHelper.load(key: "stt_api_key") ?? ""
+                ZStack {
+                    if showSTTKey {
+                        TextField("sk-...", text: $sttApiKeyInput)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        SecureField("sk-...", text: $sttApiKeyInput)
+                            .textFieldStyle(.roundedBorder)
                     }
+                }
+                .frame(maxWidth: 220)
+                .onAppear {
+                    sttApiKeyInput = KeychainHelper.load(key: "stt_api_key") ?? ""
+                }
+                Button {
+                    showSTTKey.toggle()
+                } label: {
+                    Image(systemName: showSTTKey ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.plain)
+                .controlSize(.small)
                 Button(sttKeySaved ? "Saved" : "Save") {
                     try? KeychainHelper.save(key: "stt_api_key", value: sttApiKeyInput)
                     sttKeySaved = true
