@@ -13,12 +13,12 @@ let package = Package(
         .executableTarget(
             name: "Voco",
             dependencies: [],
-            path: "Typeless"
+            path: "Voco"
         ),
         .testTarget(
-            name: "TypelessTests",
+            name: "VocoTests",
             dependencies: ["Voco"],
-            path: "TypelessTests"
+            path: "VocoTests"
         )
     ]
 )

@@ -1,6 +1,6 @@
 .DS_Store
-Typeless/.build/
-Typeless/.swiftpm/
+Voco/.build/
+Voco/.swiftpm/
 *.xcodeproj
 xcuserdata/
 DerivedData/

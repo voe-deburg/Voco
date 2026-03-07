@@ -22,7 +22,7 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: Typeless
+      - path: Voco
         excludes:
           - "**/*.plist"
           - "**/*.entitlements"
@@ -33,7 +33,7 @@ targets:
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Info.plist
-        CODE_SIGN_ENTITLEMENTS: Typeless.entitlements
+        CODE_SIGN_ENTITLEMENTS: Voco.entitlements
         CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "15.0"
@@ -47,7 +47,7 @@ targets:
       - package: LaunchAtLogin-Modern
         product: LaunchAtLogin
     entitlements:
-      path: Typeless.entitlements
+      path: Voco.entitlements
     info:
       path: Info.plist
       properties:
