@@ -193,10 +193,17 @@ final class VoiceInputPipeline {
                 print("[Voco] System prompt:\n\(systemPrompt)")
                 print("[Voco] ────────────")
 
+                let userPrompt: String
+                if self.activeMode == .reformatAndTranslate {
+                    userPrompt = rawText + "\n\nRewrite the above in clean, natural \(self.settings.targetLanguage):"
+                } else {
+                    userPrompt = rawText + "\n\nRewrite the above in clean, natural text:"
+                }
+
                 let llmProvider = LLMProviderFactory.create(for: self.settings)
                 let processedText = try await llmProvider.process(
                     systemPrompt: systemPrompt,
-                    userPrompt: rawText
+                    userPrompt: userPrompt
                 )
 
                 try Task.checkCancellation()
