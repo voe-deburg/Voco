@@ -4,7 +4,13 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentStep = 0
     @State private var sttApiKey = ""
+    @State private var sttBaseURL = ""
+    @State private var sttModel = ""
+    @State private var sttSaved = false
     @State private var llmApiKey = ""
+    @State private var llmBaseURL = ""
+    @State private var llmModel = ""
+    @State private var llmSaved = false
     @State private var micGranted = PermissionsService.checkMicrophonePermission()
     @State private var accessibilityGranted = PermissionsService.checkAccessibilityPermission()
     private let settings = AppSettings.shared
@@ -139,24 +145,38 @@ struct OnboardingView: View {
     }
 
     private var sttApiKeyStep: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Image(systemName: "waveform")
                 .font(.system(size: 48))
                 .foregroundStyle(.mint)
             Text("Speech-to-Text API")
                 .font(.title2.bold())
-            Text("Configure the API key for your STT provider (e.g. DashScope, OpenAI).\nYou can change this later in Settings.")
+            Text("Configure your STT provider. You can change this later in Settings.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
 
-            SecureField("STT API Key", text: $sttApiKey)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 350)
+            VStack(spacing: 8) {
+                TextField("Base URL (default: \(AppConstants.defaultSTTBaseURL))", text: $sttBaseURL)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 380)
+                TextField("Model (default: \(AppConstants.defaultSTTModel))", text: $sttModel)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 380)
+                SecureField("API Key", text: $sttApiKey)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 380)
+            }
 
-            if !sttApiKey.isEmpty {
-                Button("Save Key") {
+            if sttSaved {
+                Label("Saved", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            } else if !sttApiKey.isEmpty {
+                Button("Save") {
                     try? KeychainHelper.save(key: "stt_api_key", value: sttApiKey)
+                    if !sttBaseURL.isEmpty { settings.sttBaseURL = sttBaseURL }
+                    if !sttModel.isEmpty { settings.sttModel = sttModel }
+                    sttSaved = true
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -170,24 +190,38 @@ struct OnboardingView: View {
     }
 
     private var llmApiKeyStep: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Image(systemName: "brain")
                 .font(.system(size: 48))
                 .foregroundStyle(.yellow)
             Text("LLM API")
                 .font(.title2.bold())
-            Text("Configure the API key for your LLM provider (e.g. OpenAI, Cerebras).\nYou can change this later in Settings.")
+            Text("Configure your LLM provider. You can change this later in Settings.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
 
-            SecureField("LLM API Key", text: $llmApiKey)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 350)
+            VStack(spacing: 8) {
+                TextField("Base URL (default: \(AppConstants.defaultLLMBaseURL))", text: $llmBaseURL)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 380)
+                TextField("Model (default: \(AppConstants.defaultLLMModel))", text: $llmModel)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 380)
+                SecureField("API Key", text: $llmApiKey)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 380)
+            }
 
-            if !llmApiKey.isEmpty {
-                Button("Save Key") {
+            if llmSaved {
+                Label("Saved", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            } else if !llmApiKey.isEmpty {
+                Button("Save") {
                     try? KeychainHelper.save(key: "llm_api_key", value: llmApiKey)
+                    if !llmBaseURL.isEmpty { settings.llmBaseURL = llmBaseURL }
+                    if !llmModel.isEmpty { settings.llmModel = llmModel }
+                    llmSaved = true
                 }
                 .buttonStyle(.borderedProminent)
             }
