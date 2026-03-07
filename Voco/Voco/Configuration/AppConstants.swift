@@ -21,5 +21,5 @@ enum AppConstants {
 
     // Default LLM endpoint (OpenAI)
     static let defaultLLMBaseURL = "https://api.openai.com/v1"
-    static let defaultLLMModel = "gpt-4o-mini"
+    static let defaultLLMModel = "gpt-4o"
 }
