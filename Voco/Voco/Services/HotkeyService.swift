@@ -28,6 +28,7 @@ enum HotkeyService {
     nonisolated(unsafe) static var pipeline: VoiceInputPipeline?
     nonisolated(unsafe) static var isSuspended = false
     nonisolated(unsafe) static var carbonHandlerInstalled = false
+    nonisolated(unsafe) static var fnHealthTimer: Timer?
 
     // Fn key state
     nonisolated(unsafe) static var fnWasPressed = false
@@ -61,8 +62,10 @@ enum HotkeyService {
     static func resume() {
         isSuspended = false
         // Re-enable Fn tap in case system disabled it
-        if let port = fnTapPort {
-            CGEvent.tapEnable(tap: port, enable: true)
+        let settings = AppSettings.shared
+        let needsFn = settings.transcribeHotkey.keyCode == fnKeyCode || settings.translateHotkey.keyCode == fnKeyCode
+        if needsFn {
+            ensureFnTapAlive()
         }
         print("[Voco] Hotkeys resumed")
     }
@@ -103,6 +106,9 @@ enum HotkeyService {
 
         if needsFn {
             installFnTap()
+            startFnHealthCheck()
+        } else {
+            stopFnHealthCheck()
         }
     }
 
@@ -231,7 +237,36 @@ enum HotkeyService {
         print("[Voco] Fn tap installed")
     }
 
+    private static func startFnHealthCheck() {
+        stopFnHealthCheck()
+        fnHealthTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                ensureFnTapAlive()
+            }
+        }
+    }
+
+    private static func stopFnHealthCheck() {
+        fnHealthTimer?.invalidate()
+        fnHealthTimer = nil
+    }
+
+    @MainActor
+    private static func ensureFnTapAlive() {
+        if let port = fnTapPort {
+            if !CGEvent.tapIsEnabled(tap: port) {
+                CGEvent.tapEnable(tap: port, enable: true)
+                print("[Voco] Fn tap was disabled — re-enabled by health check")
+            }
+        } else {
+            // Tap doesn't exist (initial creation failed or was removed) — retry
+            print("[Voco] Fn tap not found — attempting to recreate")
+            installFnTap()
+        }
+    }
+
     private static func removeFnTap() {
+        stopFnHealthCheck()
         if let source = fnRunLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
             fnRunLoopSource = nil

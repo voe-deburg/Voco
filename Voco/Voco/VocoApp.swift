@@ -12,6 +12,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Install main menu (LSUIElement apps have no menu bar by default)
         let mainMenu = NSMenu()
 
+        // App menu — Cmd+Q
+        let appItem = NSMenuItem()
+        mainMenu.addItem(appItem)
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Quit Voco", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+
         // Edit menu — enables Cmd+X/C/V/A in text fields
         let editItem = NSMenuItem()
         mainMenu.addItem(editItem)
