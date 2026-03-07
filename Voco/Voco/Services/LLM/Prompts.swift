@@ -40,6 +40,9 @@ enum Prompts {
     - **LAYOUT INTENT:**
       - [New Line] → Single line break (\\n)
       - [New Paragraph] → Double line break (\\n\\n)
+    - **EMOJI INTENT:**
+      - **Logic:** [Emoji Description] + ["emoji" / "icon" / "表情" / "图标"] → Corresponding Unicode Emoji.
+      - **Examples:** "laughing emoji" → 😂, "fire icon" → 🔥, "爱心表情" → ❤️, "大拇指图标" → 👍.
 
     # 3. Structural Intelligence (Conditional Listing)
     Analyze the semantic intent to determine if a list is appropriate.
@@ -108,6 +111,9 @@ enum Prompts {
     - **LAYOUT INTENT:**
       - [New Line] → Single line break (\\n)
       - [New Paragraph] → Double line break (\\n\\n)
+    - **EMOJI INTENT:**
+      - **Logic:** [Emoji Description] + ["emoji" / "icon" / "表情" / "图标"] → Corresponding Unicode Emoji.
+      - **Examples:** "laughing emoji" → 😂, "fire icon" → 🔥, "爱心表情" → ❤️, "大拇指图标" → 👍.
 
     # 3. Structural Intelligence (Conditional Listing)
     Analyze the semantic intent to determine if a list is appropriate in the translated text.
